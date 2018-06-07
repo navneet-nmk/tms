@@ -31,30 +31,11 @@ class VideoCamera(object):
         # so we must encode it into JPEG in order to correctly display the
         # video stream.
 
-        model_image = cv2.resize(image, (224, 224))
-        model_image = np.expand_dims(model_image, axis=0)
-
-        print(model_image.shape)
-
-        with self.graph.as_default():
-            self.model.predict(model_image)
-
         scaling_factor = 0.5
 
         while True:
             frame = cv2.resize(image, None, fx=scaling_factor,
                        fy=scaling_factor, interpolation=cv2.INTER_AREA)
-
-            # Convert the HSV colorspace
-            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            #
-
-            # Define 'blue' range in HSV colorspace
-            lower = np.array([45, 100, 100])
-            upper = np.array([85, 255, 255])
-
-            # Threshold the HSV image to get only blue color
-            mask = cv2.inRange(hsv, lower, upper)
 
             # Creating a red mask
             redImg = np.zeros(frame.shape, frame.dtype)
@@ -65,23 +46,18 @@ class VideoCamera(object):
             c = cv2.waitKey(5)
             if c == 27:
                 break
-            elif c % 256 == 32:
-                print('space')
-                x_offset = y_offset = 50
-                # SPACE pressed
-                model_image = cv2.resize(frame, (224, 224))
-                model_image = np.expand_dims(model_image, axis=0)
-                v = -1
-                with graph.as_default():
-                    v = self.model.predict(model_image)
-                    #K.clear_session()
-                print(v)
-                font = cv2.FONT_HERSHEY_SIMPLEX
-                # Bitwise-AND mask and original image
-                if v < 0.5:
-                    cv2.addWeighted(greenImg, 1, frame, 1, 0, frame)
-                else:
-                    cv2.addWeighted(redImg, 1, frame, 1, 0, frame)
+            x_offset = y_offset = 50
+            # SPACE pressed
+            model_image = cv2.resize(image, (224, 224))
+            model_image = np.expand_dims(model_image, axis=0)
+
+            with self.graph.as_default():
+                v = self.model.predict(model_image)
+            # Bitwise-AND mask and original image
+            if v < 0.5:
+                cv2.addWeighted(greenImg, 1, frame, 1, 0, frame)
+            else:
+                cv2.addWeighted(redImg, 1, frame, 1, 0, frame)
 
             ret, jpeg = cv2.imencode('.jpg', frame)
             return jpeg.tobytes()
